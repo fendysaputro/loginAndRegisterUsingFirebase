@@ -121,5 +121,17 @@
         app:layout_constraintTop_toTopOf="@+id/tValready"
         app:layout_constraintVertical_bias="0.22000003" />
 
+    <TextView
+        android:id="@+id/tVResetPassword"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#F44336"
+        android:text="Forget Password? Reset from here"
+        app:layout_constraintBottom_toTopOf="@+id/progressBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tValready"
+        app:layout_constraintVertical_bias="0.22000003" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
