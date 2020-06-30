@@ -2,8 +2,10 @@ package com.fendy.myfirebaseapp;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -37,7 +39,8 @@ public class MainActivity extends AppCompatActivity {
     FirebaseAuth auth;
     FirebaseFirestore firestore;
     String userID;
-    Button btnVerify;
+    Button btnVerify, changePassword;
+    FirebaseUser user;
 
     private static final String TAG = "MainActivity";
 
@@ -50,13 +53,14 @@ public class MainActivity extends AppCompatActivity {
         tvFname = (TextView) findViewById(R.id.tVname);
         tvEmail = (TextView) findViewById(R.id.tVEmail);
         tvPhone = (TextView) findViewById(R.id.tVphone);
+        changePassword = (Button) findViewById(R.id.btnChangePassword);
 
         auth = FirebaseAuth.getInstance();
         firestore = FirebaseFirestore.getInstance();
 
         userID = auth.getCurrentUser().getUid();
 
-        final FirebaseUser user = auth.getCurrentUser();
+        user = auth.getCurrentUser();
 
         btnVerify = (Button) findViewById(R.id.btnVerify);
         tVVerify = (TextView) findViewById(R.id.idVerify);
@@ -98,7 +102,46 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        changePassword.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                final EditText edResetPassword = new EditText(view.getContext());
+                AlertDialog.Builder resetPasswordDialog = new AlertDialog.Builder(view.getContext());
+                resetPasswordDialog.setTitle("Reset Password");
+                resetPasswordDialog.setMessage("Enter new Password must > 6 characters");
+                resetPasswordDialog.setView(edResetPassword);
+                resetPasswordDialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        String newPassword = edResetPassword.getText().toString().trim();
+                        user.updatePassword(newPassword).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                Toast.makeText(getApplication(), "Password is successfully reset", Toast.LENGTH_SHORT).show();
+                            }
+                        }).addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Toast.makeText(getApplication(), "Error password not success reset " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                });
+
+                resetPasswordDialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+
+                    }
+                });
+
+                resetPasswordDialog.create().show();
+            }
+        });
     }
+
+
 
     public void logout(View view) {
         FirebaseAuth.getInstance().signOut();
