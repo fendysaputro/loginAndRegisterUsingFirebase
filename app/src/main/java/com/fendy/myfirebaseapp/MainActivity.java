@@ -15,7 +15,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.fendy.myfirebaseapp.model.User;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -30,10 +33,11 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 public class MainActivity extends AppCompatActivity {
 
     ImageView profileImage;
-    TextView tvFname, tvEmail, tvPhone;
+    TextView tvFname, tvEmail, tvPhone, tVVerify;
     FirebaseAuth auth;
     FirebaseFirestore firestore;
     String userID;
+    Button btnVerify;
 
     private static final String TAG = "MainActivity";
 
@@ -51,6 +55,33 @@ public class MainActivity extends AppCompatActivity {
         firestore = FirebaseFirestore.getInstance();
 
         userID = auth.getCurrentUser().getUid();
+
+        final FirebaseUser user = auth.getCurrentUser();
+
+        btnVerify = (Button) findViewById(R.id.btnVerify);
+        tVVerify = (TextView) findViewById(R.id.idVerify);
+
+        if (!user.isEmailVerified()){
+            tVVerify.setVisibility(View.VISIBLE);
+            btnVerify.setVisibility(View.VISIBLE);
+            btnVerify.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    user.sendEmailVerification().addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            Toast.makeText(getApplication(), "Email Verification is been sent", Toast.LENGTH_SHORT).show();
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Log.e("loginFirebase", "onFailure : email verification is not sent " + e.getMessage());
+                        }
+                    });
+                }
+            });
+        }
+
 
         DocumentReference documentReference = firestore.collection("users").document(userID);
         documentReference.addSnapshotListener(this, new EventListener<DocumentSnapshot>() {
