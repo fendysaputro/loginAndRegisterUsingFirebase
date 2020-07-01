@@ -5,9 +5,12 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -31,16 +34,21 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+import com.squareup.picasso.Picasso;
 
 public class MainActivity extends AppCompatActivity {
-
+    private static final int GALLERY_INTENT_CODE = 1234;
     ImageView profileImage;
     TextView tvFname, tvEmail, tvPhone, tVVerify;
     FirebaseAuth auth;
     FirebaseFirestore firestore;
     String userID;
-    Button btnVerify, changePassword;
+    Button btnVerify, changePassword, changeProfile;
     FirebaseUser user;
+    StorageReference storageReference;
 
     private static final String TAG = "MainActivity";
 
@@ -54,9 +62,19 @@ public class MainActivity extends AppCompatActivity {
         tvEmail = (TextView) findViewById(R.id.tVEmail);
         tvPhone = (TextView) findViewById(R.id.tVphone);
         changePassword = (Button) findViewById(R.id.btnChangePassword);
+        changeProfile = (Button) findViewById(R.id.btnChangeProfile);
 
         auth = FirebaseAuth.getInstance();
         firestore = FirebaseFirestore.getInstance();
+        storageReference = FirebaseStorage.getInstance().getReference();
+
+        StorageReference profileRef = storageReference.child("users/"+auth.getCurrentUser().getEmail()+"/profile.jpg");
+        profileRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+            @Override
+            public void onSuccess(Uri uri) {
+                Picasso.with(getApplication()).load(uri).into(profileImage);
+            }
+        });
 
         userID = auth.getCurrentUser().getUid();
 
@@ -139,13 +157,63 @@ public class MainActivity extends AppCompatActivity {
                 resetPasswordDialog.create().show();
             }
         });
+
+        changeProfile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(galleryIntent, 1000);
+            }
+        });
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1000){
+            if (resultCode == Activity.RESULT_OK){
+                Uri imageUri = data.getData();
+                profileImage.setImageURI(imageUri);
+                uploadImageToFirebase(imageUri);
+            }
+        }
+    }
 
+    private void uploadImageToFirebase(Uri imageUri) {
+
+        final StorageReference fileRef = storageReference.child("users/"+auth.getCurrentUser().getEmail()+"/profile.jpg");
+        fileRef.putFile(imageUri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                fileRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                    @Override
+                    public void onSuccess(Uri uri) {
+                        Picasso.with(MainActivity.this)
+                                .load(uri)
+                                .fit()
+                                .into(profileImage);
+                    }
+                });
+//                Toast.makeText(getApplication(), "Upload image successfully", Toast.LENGTH_SHORT).show();
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(getApplication(), "Upload image failure" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+    }
 
     public void logout(View view) {
         FirebaseAuth.getInstance().signOut();
         startActivity(new Intent(getApplicationContext(), LoginActivity.class));
         finish();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        getSupportActionBar().hide();
     }
 }
